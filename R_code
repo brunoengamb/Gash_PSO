@@ -1,0 +1,69 @@
+################################################################################
+##University of Brasília                                                       #
+#Environmental Technology and Water Resources Postgraduate School              #
+#Script for Gash model canopy interception simulation                          #
+#Autor: Távora, B.E & Koide, S (2017)                                          #
+################################################################################
+
+
+Gash<- function(p, ER, Pg, event_number){
+####____Model Parameters____________________________________________________####
+p<- p            ####Free Throughfall 
+ER<- ER          ####Ratio of evaporation to rainfall intensity
+Pg<- Pg          ####Rainfall until Canopy saturation 
+e<- event_number ####CSV file index for event (for event1.csv e=1)
+####____Reading experimental data __________________________________________####
+Exp_data<- read.csv(paste ("Event",e, ".csv", sep =""), header = T, sep = ",")
+require('lubridate')
+Exp_data$Date_Time<- ymd_hms(Exp_data$Date_Time)
+####____Computing cumulative Rainfall and Throughfall_______________________####
+Rain_acum<- cumsum(Exp_data$Rainfall_mm)
+T_acum<- cumsum(Exp_data$Throughfall_mm)
+obs<- length(Rain_acum)
+
+####____Gash Model__________________________________________________________####
+pn<- vector() ####Vector for store computed thorughfall
+for(i in 1:obs){
+  if(Rain_acum[i]<Pg)
+  {
+    pn[i]<- p*Rain_acum[i]
+  }
+  else{
+    pn[i]<- p*Pg + (1-ER)*(Rain_acum[i]-Pg)
+  }
+  pn<- c(pn, pn[i])
+}
+pn<- pn[1:length(pn)-1]
+
+pn_model<- c(pn[1],diff(pn))        ####Vector with computed thorughfall
+pn_real<- c(T_acum[1],diff(T_acum)) ####Vector with observed thorughfall
+
+####____New base data with 5 minutes time step______________________________####
+NBD<- data.frame(Exp_data$Date_Time, pn_model, pn_real)
+names(NBD)<- c("Data", "PN_model", "PN_real")
+NBD_cut<- split(NBD, cut(NBD$Data, format="%m/%d/%Y %H:%M", breaks = "5 mins"))
+model<- lapply(NBD_cut, function(x)sum(x$PN_model))
+real<- lapply(NBD_cut, function(x)sum(x$PN_real))
+Thr<- as.data.frame(rbind(model, real))
+library (plyr)
+Thr <- ldply(Thr, data.frame)
+names(Thr)<- c("Data", "model", "real")
+Thr$Data<- strptime(Thr$Data, "%Y-%m-%d %H:%M:%S")
+
+####____Nash index__________________________________________________________####
+nash<- 1- (sum((Thr$real - Thr$model)^2)/
+              sum((Thr$model - mean(Thr$model))^2))
+nash<- signif(nash, digits = 3)
+
+####____Graphical Results___________________________________________________####
+par(mfrow = c(1,2))
+barplot(Thr$real, main = "Event Throughfall - Real",
+        ylab = "Throughfall (mm)", xlab= "time (hh:mm)",
+        ylim = c(max(Thr$model) +1, 0), names.arg= format(Thr$Data, format="%H:%M"),
+        col = "black")
+barplot(Thr$model, main = "Modeled Throughfall - Gash",
+        ylab = "Throughfall (mm)", xlab= "time (hh:mm)",
+        ylim = c(max(Thr$model) +1, 0), names.arg= format(Thr$Data, format="%H:%M"),
+        col = "black")
+mtext(paste("Nash =", nash), side = 3, line = 0, cex = 2/3)  
+}

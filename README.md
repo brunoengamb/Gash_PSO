@@ -14,3 +14,4 @@ The code was developed in R, using RStudio Version 0.99.903.
        Event 3	-  Gash(p= 0.16, ER= 0.16, Pg= 2.86, event_number = 3)
        Event 4	-  Gash(p= 0.16, ER= 0.48, Pg= 1.63, event_number = 4)
 4. Results consists of two graphs one of observed and another of the simulated net precipitation.
+  ex:Example of the result can be seen in the "image.png" file in the root directory.

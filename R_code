@@ -52,7 +52,7 @@ Thr$Data<- strptime(Thr$Data, "%Y-%m-%d %H:%M:%S")
 
 ####____Nash index__________________________________________________________####
 nash<- 1- (sum((Thr$real - Thr$model)^2)/
-              sum((Thr$model - mean(Thr$model))^2))
+              sum((Thr$real - mean(Thr$real))^2))
 nash<- signif(nash, digits = 3)
 
 ####____Graphical Results___________________________________________________####
